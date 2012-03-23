@@ -2,7 +2,7 @@ require 'savon'
 require 'csv'
 
 host	= ''
-un 	= ''
+usr 	= ''
 pwd 	= ''
 term = ''
 data = '.csv'
@@ -31,7 +31,7 @@ longsight_wsdl	= "#{host}/sakai-axis/WSLongsight.jws?wsdl"
 login = Savon::Client.new(login_wsdl)
 
 session = login.request(:login) do
-	soap.body = { :id => un, :pw => pwd }
+	soap.body = { :id => usr, :pw => pwd }
 end
 
 soapClient 	= Savon::Client.new(script_wsdl)
@@ -129,10 +129,10 @@ CSV.foreach(data, 'r') do |row|
 	
 	# Remove creator of site and add correct instructor
 	
-	req = soapLSClient.request(:longsight_remove_user_id_from_site) do
+	req = soapClient.request(:remove_member_from_site) do
 		soap.body = {	:sessionid	=> session[:login_response][:login_return],
 					:siteid		=> row[0],
-					:userid		=> un }
+					:userid		=> usr }
 	end
 	
 	req = soapLSClient.request(:add_inactive_member_to_site_with_role) do
