@@ -2,7 +2,7 @@ require 'savon'
 require 'csv'
 
 host	= ''
-un 	= ''
+usr 	= ''
 pwd 	= '' 
 
 login_wsdl 	= "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
@@ -12,7 +12,7 @@ longsight_wsdl	= "#{host}/sakai-axis/WSLongsight.jws?wsdl"
 login = Savon::Client.new(login_wsdl)
 
 session = login.request(:login) do
-	soap.body = { :id => un, :pw => pwd }
+	soap.body = { :id => usr, :pw => pwd }
 end
 
 soapClient 	= Savon::Client.new(script_wsdl)
