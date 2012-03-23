@@ -127,11 +127,25 @@ CSV.foreach(data, 'r') do |row|
 					:layouthints	=> '0,1' }
 	end
 	
-	# Remove creator of site from enrollment
+	# Remove creator of site and add correct instructor
 	
 	req = soapLSClient.request(:longsight_remove_user_id_from_site) do
 		soap.body = {	:sessionid	=> session[:login_response][:login_return],
 					:siteid		=> row[0],
 					:userid		=> un }
+	end
+	
+	req = soapLSClient.request(:add_inactive_member_to_site_with_role) do
+		soap.body = {	:sessionid 	=> session[:login_response][:login_return],
+				   	:siteid 		=> row[0],
+					:eid	 		=> row[2],
+					:roleid 		=> 'Instructor' }
+	end
+
+	req = soapLSClient.request(:set_member_status) do
+		soap.body = {	:sessionid 	=> session[:login_response][:login_return],
+					:siteid	 	=> row[0],
+					:eid		 	=> row[2],
+					:active	 	=> true }
 	end
 end
