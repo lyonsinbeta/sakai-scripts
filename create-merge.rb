@@ -37,7 +37,7 @@ end
 soapClient 	= Savon::Client.new(script_wsdl)
 soapLSClient 	= Savon::Client.new(longsight_wsdl) 
 
-CSV.foreach(data, 'r') do |row|
+CSV.foreach(data, {:headers => true}) do |row|
   response = soapClient.request(:add_new_site) do
 	soap.body = {	:sessionid 	=> session[:login_response][:login_return],
 				:siteid		=> row[0],
