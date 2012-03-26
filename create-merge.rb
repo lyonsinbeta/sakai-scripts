@@ -31,121 +31,120 @@ longsight_wsdl	= "#{host}/sakai-axis/WSLongsight.jws?wsdl"
 login = Savon::Client.new(login_wsdl)
 
 session = login.request(:login) do
-	soap.body = { :id => usr, :pw => pwd }
+  soap.body = { :id => usr, :pw => pwd }
 end
 
 soapClient 	= Savon::Client.new(script_wsdl)
 soapLSClient 	= Savon::Client.new(longsight_wsdl) 
 
 CSV.foreach(data, 'r') do |row|
-	response = soapClient.request(:add_new_site) do
-		soap.body = {	:sessionid 	=> session[:login_response][:login_return],
-					:siteid		=> row[0],
-					:title		=> row[1],
-					:description	=> '',
-					:shortdesc	=> '',
-					:iconurl		=> '',
-					:infourl		=> '',
-					:joinable		=> false,
-					:joinerrole	=> 'Student',
-					:published	=> false,
-					:publicview	=> false,
-					:skin		=> '',
-					:type		=> 'course' }
-	end
+  response = soapClient.request(:add_new_site) do
+	soap.body = {	:sessionid 	=> session[:login_response][:login_return],
+				:siteid		=> row[0],
+				:title		=> row[1],
+				:description	=> '',
+				:shortdesc	=> '',
+				:iconurl		=> '',
+				:infourl		=> '',
+				:joinable		=> false,
+				:joinerrole	=> 'Student',
+				:published	=> false,
+				:publicview	=> false,
+				:skin		=> '',
+				:type		=> 'course' }
+  end
 
-	req = soapClient.request(:set_site_property) do
+  req = soapClient.request(:set_site_property) do
+	soap.body = {	:sessionid	=> session[:login_response][:login_return],
+				:siteid		=> row[0],
+				:propname		=> 'term',
+				:propvalue	=> term }
+  end
+
+# Loop to add default tools
+
+  default_tools.each_pair do |tool_name, tool_id|
+  	req = soapClient.request(:add_new_page_to_site) do
 		soap.body = {	:sessionid	=> session[:login_response][:login_return],
 					:siteid		=> row[0],
-					:propname		=> 'term',
-					:propvalue	=> term }
+					:pagetitle	=> tool_name,
+					:pagelayout	=> 2 }
 	end
 
-	# Loop to add default tools
-
-	default_tools.each_pair do |tool_name, tool_id|
-
-		req = soapClient.request(:add_new_page_to_site) do
-			soap.body = {	:sessionid	=> session[:login_response][:login_return],
-						:siteid		=> row[0],
-						:pagetitle	=> tool_name,
-						:pagelayout	=> 2 }
-		end
-
-		req = soapClient.request(:add_new_tool_to_page) do
-			soap.body = {	:sessionid	=> session[:login_response][:login_return],
-						:siteid		=> row[0],
-						:pagetitle	=> tool_name,
-						:tooltitle	=> tool_name,
-						:toolid		=> tool_id,
-						:layouthints	=> '0,0' }
-		end
-	end
-
-	# Home begin
-	# This whole part is to setup the complicated, multi-tooled 'Home'
-
-	req = soapClient.request(:add_new_page_to_site) do
+  	req = soapClient.request(:add_new_tool_to_page) do
 		soap.body = {	:sessionid	=> session[:login_response][:login_return],
+					:siteid		=> row[0],
+					:pagetitle	=> tool_name,
+					:tooltitle	=> tool_name,
+					:toolid		=> tool_id,
+					:layouthints	=> '0,0' }
+	end
+  end
+
+# Home begin
+# This whole part is to setup the complicated, multi-tooled 'Home'
+
+  req = soapClient.request(:add_new_page_to_site) do
+	  soap.body = { 	:sessionid	=> session[:login_response][:login_return],
 					:siteid		=> row[0],
 					:pagetitle	=> 'Home',
 					:pagelayout	=> 1 }
-	end
+  end
 
-	req = soapLSClient.request(:add_config_property_to_page) do
-		soap.body = {	:sessionid	=> session[:login_response][:login_return],
+  req = soapLSClient.request(:add_config_property_to_page) do
+	  soap.body = {	:sessionid	=> session[:login_response][:login_return],
 					:siteid		=> row[0],
 					:pagetitle	=> 'Home',
 					:propname		=> 'is_home_page',
 					:propvalue	=> 'true' }
-	end
+  end
 
-	req = soapClient.request(:add_new_tool_to_page) do
-		soap.body = {	:sessionid	=> session[:login_response][:login_return],
+  req = soapClient.request(:add_new_tool_to_page) do
+	  soap.body = {	:sessionid	=> session[:login_response][:login_return],
 					:siteid		=> row[0],
 					:pagetitle	=> 'Home',
 					:tooltitle	=> 'Site Information Display',
 					:toolid		=> 'sakai.iframe.site',
 					:layouthints	=> '0,0' }
-	end
+  end
 
-	req = soapClient.request(:add_config_property_to_tool) do
-		soap.body = {	:sessionid	=> session[:login_response][:login_return],
+  req = soapClient.request(:add_config_property_to_tool) do
+	  soap.body = {	:sessionid	=> session[:login_response][:login_return],
 					:siteid		=> 'SOAP_test_id',
 					:pagetitle	=> 'Home',
 					:tooltitle	=> 'Worksite Information',
 					:propname		=> 'special',
 					:propvalue	=> 'worksite' }
-	end
+  end
 
-	req = soapClient.request(:add_new_tool_to_page) do
-		soap.body = {	:sessionid	=> session[:login_response][:login_return],
+  req = soapClient.request(:add_new_tool_to_page) do
+	  soap.body = {	:sessionid	=> session[:login_response][:login_return],
 					:siteid		=> row[0],
 					:pagetitle	=> 'Home',
 					:tooltitle	=> 'Recent Announcements',
 					:toolid		=> 'sakai.synoptic.announcement',
 					:layouthints	=> '0,1' }
-	end
-	
-	# Remove creator of site and add correct instructor
-	
-	req = soapClient.request(:remove_member_from_site) do
-		soap.body = {	:sessionid	=> session[:login_response][:login_return],
+  end
+
+# Remove creator of site and add correct instructor
+
+  req = soapClient.request(:remove_member_from_site) do
+	  soap.body = {	:sessionid	=> session[:login_response][:login_return],
 					:siteid		=> row[0],
 					:userid		=> usr }
-	end
-	
-	req = soapLSClient.request(:add_inactive_member_to_site_with_role) do
-		soap.body = {	:sessionid 	=> session[:login_response][:login_return],
+  end
+
+  req = soapLSClient.request(:add_inactive_member_to_site_with_role) do
+	  soap.body = {	:sessionid 	=> session[:login_response][:login_return],
 				   	:siteid 		=> row[0],
 					:eid	 		=> row[2],
 					:roleid 		=> 'Instructor' }
-	end
+  end
 
-	req = soapLSClient.request(:set_member_status) do
-		soap.body = {	:sessionid 	=> session[:login_response][:login_return],
+  req = soapLSClient.request(:set_member_status) do
+	  soap.body = {	:sessionid 	=> session[:login_response][:login_return],
 					:siteid	 	=> row[0],
 					:eid		 	=> row[2],
 					:active	 	=> true }
-	end
+  end
 end
