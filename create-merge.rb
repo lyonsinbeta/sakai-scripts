@@ -110,7 +110,7 @@ CSV.foreach(data, {:headers => true}) do |row|
 
   req = soapClient.request(:add_config_property_to_tool) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
-                     :siteid    => 'SOAP_test_id',
+                     :siteid    => row[0],
                      :pagetitle => 'Home',
                      :tooltitle => 'Worksite Information',
                      :propname  => 'special',
