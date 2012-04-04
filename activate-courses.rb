@@ -1,10 +1,10 @@
 require 'savon'
 require 'csv'
 
-host	= ''
-usr 	= ''
-pwd 	= '' 
-data = ARGV[0] || 'data.rb'
+host = ''
+usr  = ''
+pwd  = '' 
+data = ARGV[0] || 'data.csv'
 
 login_wsdl 	= "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
 script_wsdl 	= "#{host}/sakai-axis/SakaiScript.jws?wsdl"
