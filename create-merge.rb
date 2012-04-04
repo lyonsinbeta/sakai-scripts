@@ -1,9 +1,9 @@
 require 'savon'
 require 'csv'
 
-host	= ''
-usr 	= ''
-pwd 	= ''
+host = ''
+usr  = ''
+pwd  = ''
 term = ''
 data = ARGV[0] || '.csv'
 
@@ -15,10 +15,10 @@ default_tools = { 'Syllabus'        => 'sakai.syllabus',
                   'Tests & Quizzes' => 'sakai.samigo', 
                   'Forums'          => 'sakai.forums', 
                   'Messages'        => 'sakai.messages', 
-                  'Gradebook'		 => 'sakai.gradebook.tool', 
+                  'Gradebook'       => 'sakai.gradebook.tool', 
                   'Roster'          => 'sakai.site.roster', 
                   'Statistics'      => 'sakai.sitestats', 
-                  'User Activity'	 => 'seminole.useractivity', 
+                  'User Activity'   => 'seminole.useractivity', 
                   'Section Info'    => 'sakai.sections', 
                   'Site Info'       => 'sakai.siteinfo' }
 
