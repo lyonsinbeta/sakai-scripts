@@ -5,7 +5,7 @@ host	= ''
 usr 	= ''
 pwd 	= ''
 term = ''
-data = '.csv'
+data = ARGV[0] || '.csv'
 
 default_tools = { 	'Syllabus' 		=> 'sakai.syllabus',
 				'Calendar' 		=> 'sakai.summary.calendar', 

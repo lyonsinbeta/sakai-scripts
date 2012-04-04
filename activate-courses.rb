@@ -3,10 +3,8 @@ require 'csv'
 
 host	= ''
 usr 	= ''
-pwd 	= ''
-data = '.csv'
-
-### Do not edit below this line ###
+pwd 	= '' 
+data = ARGV[0] || '.csv'
 
 login_wsdl 	= "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
 script_wsdl 	= "#{host}/sakai-axis/SakaiScript.jws?wsdl"
