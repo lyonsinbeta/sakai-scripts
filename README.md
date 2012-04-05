@@ -16,3 +16,4 @@ I wrote this collection of scripts to help my institution manage it's course cre
 
 - Scripts will either look for a file called 'data.csv' or the csv entered as an argument.
 - The 'host', 'usr', and 'pwd' variables need to be filled out for your Sakai environment.
+- Column name/order for .csv is listed at the top of each script.

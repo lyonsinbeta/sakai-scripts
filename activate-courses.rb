@@ -1,3 +1,6 @@
+# .csv MUST include headers in the order of
+# siteid, userid of instructor
+
 require 'savon'
 require 'csv'
 
@@ -6,9 +9,9 @@ usr  = ''
 pwd  = '' 
 data = ARGV[0] || 'data.csv'
 
-login_wsdl 	= "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
-script_wsdl 	= "#{host}/sakai-axis/SakaiScript.jws?wsdl"
-longsight_wsdl	= "#{host}/sakai-axis/WSLongsight.jws?wsdl"
+login_wsdl     = "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
+script_wsdl    = "#{host}/sakai-axis/SakaiScript.jws?wsdl"
+longsight_wsdl = "#{host}/sakai-axis/WSLongsight.jws?wsdl"
 
 login = Savon::Client.new(login_wsdl)
 
@@ -16,8 +19,8 @@ session = login.request(:login) do
   soap.body = { :id => usr, :pw => pwd }
 end
 
-soapClient 	= Savon::Client.new(script_wsdl)
-soapLSClient 	= Savon::Client.new(longsight_wsdl) 
+soapClient   = Savon::Client.new(script_wsdl)
+soapLSClient = Savon::Client.new(longsight_wsdl) 
 
 CSV.foreach(data, {:headers => true}) do |row|
   response = soapLSClient.request(:add_inactive_member_to_site_with_role) do

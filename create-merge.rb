@@ -1,3 +1,6 @@
+# .csv MUST include headers in the order of 
+# siteid, Site Title, userid of instructor
+
 require 'savon'
 require 'csv'
 
@@ -5,7 +8,7 @@ host = ''
 usr  = ''
 pwd  = ''
 term = ''
-data = ARGV[0] || '.csv'
+data = ARGV[0] || '.csv' 
 
 default_tools = { 'Syllabus'        => 'sakai.syllabus',
                   'Calendar'        => 'sakai.summary.calendar', 
