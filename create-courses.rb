@@ -1,14 +1,28 @@
 # .csv MUST include headers in the order of 
 # siteid, Site Title, userid of instructor
 
+require 'optparse'
 require 'savon'
 require 'csv'
 
-host = ''
-usr  = ''
-pwd  = ''
-term = ''
-data = ARGV[0] || '.csv' 
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "\nThanks for supporting open source software."
+  opts.on('-v', '--verify', "Verifies an instructor has completed training before activating") do |v|
+    options[:verify] = v
+  end
+  opts.on('-h', '--help', 'Displays help') do
+    puts opts
+	exit
+  end
+end.parse!
+
+host               = ''
+soap_user          = ''
+soap_pwd           = ''
+term               = ''
+create_courses_csv = ARGV[0] || 'create-course.csv'
+training_csv       = 'training.csv' 
 
 default_tools = { 'Syllabus'        => 'sakai.syllabus',
                   'Calendar'        => 'sakai.summary.calendar', 
@@ -25,43 +39,72 @@ default_tools = { 'Syllabus'        => 'sakai.syllabus',
                   'Section Info'    => 'sakai.sections', 
                   'Site Info'       => 'sakai.siteinfo' }
 
-### Do not edit below this line! ###
+login_wsdl     = "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
+script_wsdl    = "#{host}/sakai-axis/SakaiScript.jws?wsdl"
+longsight_wsdl = "#{host}/sakai-axis/WSLongsight.jws?wsdl"
 
-login_wsdl 	= "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
-script_wsdl 	= "#{host}/sakai-axis/SakaiScript.jws?wsdl"
-longsight_wsdl	= "#{host}/sakai-axis/WSLongsight.jws?wsdl"
+course_list = []
 
-login = Savon::Client.new(login_wsdl)
-
-session = login.request(:login) do
-  soap.body = { :id => usr, :pw => pwd }
+if options[:verify]
+  begin
+    sakai_trained = []
+    CSV.foreach(training_csv, {:headers => true}) do |trained|
+      sakai_trained << trained[0].to_s.downcase
+    end
+  rescue
+    abort 'Error opening training.csv'
+  end
+  abort 'The training.csv appears to be empty.' if sakai_trained.empty? 
+end 
+ 
+CSV.foreach(create_courses_csv, {:headers => true}) do |row|
+  row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[1].downcase)
+  course_list << row
 end
 
-soapClient 	= Savon::Client.new(script_wsdl)
-soapLSClient 	= Savon::Client.new(longsight_wsdl) 
+if course_list.empty?
+  abort 'Input csv appears to be empty.'
+end
 
-CSV.foreach(data, {:headers => true}) do |row|
+login = Savon::Client.new(login_wsdl)
+  login.http.auth.ssl.verify_mode = :none
+
+begin
+  session = login.request(:login) do
+    soap.body = { :id => soap_user, :pw => soap_pwd }
+  end
+rescue
+  abort 'Login failed.'
+end
+
+soapClient   = Savon::Client.new(script_wsdl)
+  soapClient.http.auth.ssl.verify_mode = :none
+soapLSClient = Savon::Client.new(longsight_wsdl) 
+  soapLSClient.http.auth.ssl.verify_mode = :none
+
+course_list.each do |course|
+  unless course.fields.include?('Untrained')
   response = soapClient.request(:add_new_site) do
 	soap.body = { :sessionid   => session[:login_response][:login_return],
-                   :siteid      => row[0],
-                   :title       => row[1],
-                   :description => '',
-                   :shortdesc   => '',
-                   :iconurl     => '',
-                   :infourl     => '',
-                   :joinable    => false,
-                   :joinerrole  => 'Student',
-                   :published   => false,
-                   :publicview  => false,
-                   :skin        => '',
-                   :type        => 'course' }
+                  :siteid      => course[0],
+                  :title       => course[1],
+                  :description => '',
+                  :shortdesc   => '',
+                  :iconurl     => '',
+                  :infourl     => '',
+                  :joinable    => false,
+                  :joinerrole  => 'Student',
+                  :published   => false,
+                  :publicview  => false,
+                  :skin        => '',
+                  :type        => 'course' }
   end
 
-  req = soapClient.request(:set_site_property) do
+  response = soapClient.request(:set_site_property) do
 	soap.body = { :sessionid => session[:login_response][:login_return],
-                   :siteid    => row[0],
-                   :propname  => 'term',
-                   :propvalue => term }
+                  :siteid    => course[0],
+                  :propname  => 'term',
+                  :propvalue => term }
   end
 
 # Loop to add default tools
@@ -69,14 +112,14 @@ CSV.foreach(data, {:headers => true}) do |row|
   default_tools.each_pair do |tool_name, tool_id|
   	req = soapClient.request(:add_new_page_to_site) do
 		soap.body = { :sessionid  => session[:login_response][:login_return],
-                        :siteid     => row[0],
+                        :siteid     => course[0],
                         :pagetitle  => tool_name,
                         :pagelayout => 2 }
 	end
 
   	req = soapClient.request(:add_new_tool_to_page) do
 		soap.body = { :sessionid   => session[:login_response][:login_return],
-                        :siteid      => row[0],
+                        :siteid      => course[0],
                         :pagetitle   => tool_name,
                         :tooltitle   => tool_name,
                         :toolid      => tool_id,
@@ -89,14 +132,14 @@ CSV.foreach(data, {:headers => true}) do |row|
 
   req = soapClient.request(:add_new_page_to_site) do
 	  soap.body = { :sessionid  => session[:login_response][:login_return],
-                     :siteid     => row[0],
+                     :siteid     => course[0],
                      :pagetitle  => 'Home',
                      :pagelayout => 1 }
   end
 
   req = soapLSClient.request(:add_config_property_to_page) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
-                     :siteid    => row[0],
+                     :siteid    => course[0],
                      :pagetitle => 'Home',
                      :propname  => 'is_home_page',
                      :propvalue => 'true' }
@@ -104,7 +147,7 @@ CSV.foreach(data, {:headers => true}) do |row|
 
   req = soapClient.request(:add_new_tool_to_page) do
 	  soap.body = { :sessionid   => session[:login_response][:login_return],
-                     :siteid      => row[0],
+                     :siteid      => course[0],
                      :pagetitle   => 'Home',
                      :tooltitle   => 'Site Information Display',
                      :toolid      => 'sakai.iframe.site',
@@ -113,7 +156,7 @@ CSV.foreach(data, {:headers => true}) do |row|
 
   req = soapClient.request(:add_config_property_to_tool) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
-                     :siteid    => row[0],
+                     :siteid    => course[0],
                      :pagetitle => 'Home',
                      :tooltitle => 'Worksite Information',
                      :propname  => 'special',
@@ -122,7 +165,7 @@ CSV.foreach(data, {:headers => true}) do |row|
 
   req = soapClient.request(:add_new_tool_to_page) do
 	  soap.body = { :sessionid   => session[:login_response][:login_return],
-                     :siteid      => row[0],
+                     :siteid      => course[0],
                      :pagetitle   => 'Home',
                      :tooltitle   => 'Recent Announcements',
                      :toolid      => 'sakai.synoptic.announcement',
@@ -133,21 +176,23 @@ CSV.foreach(data, {:headers => true}) do |row|
 
   req = soapClient.request(:remove_member_from_site) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
-                     :siteid    => row[0],
-                     :userid    => usr }
+                     :siteid    => course[0],
+                     :userid    => soap_user }
   end
 
-  req = soapLSClient.request(:add_inactive_member_to_site_with_role) do
-	  soap.body = { :sessionid => session[:login_response][:login_return],
-                     :siteid    => row[0],
-                     :eid       => row[2],
-                     :roleid    => 'Instructor' }
+  req = soapClient.request(:add_member_to_site_with_role) do
+      soap.body = { :sessionid => session[:login_response][:login_return],
+                    :siteid    => course[0],
+                    :eid       => course[2],
+                    :roleid    => 'Instructor' }
+    end
   end
+end
 
-  req = soapLSClient.request(:set_member_status) do
-	  soap.body = { :sessionid => session[:login_response][:login_return],
-                     :siteid    => row[0],
-                     :eid       => row[2],
-                     :active    => true }
-  end
+time = Time.now  
+t = time.strftime("%Y-%m-%d %H%M%S")
+  
+CSV.open("Courses created #{t}.csv", 'w') { |csv| csv << ['siteid', 'site title', 'instructor'] }
+CSV.open("Courses created #{t}.csv", 'a') do |csv| 
+  course_list.each { |course| csv << course } 
 end
