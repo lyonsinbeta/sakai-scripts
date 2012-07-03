@@ -1,5 +1,4 @@
-# .csv MUST include headers in the order of 
-# siteid, Site Title, userid of instructor
+# .csv MUST include headers
 
 require 'optparse'
 require 'savon'
@@ -21,19 +20,20 @@ host               = ''
 soap_user          = ''
 soap_pwd           = ''
 term               = ''
-create_courses_csv = ARGV[0] || 'create-course.csv'
+create_courses_csv = ARGV[0] || 'create-courses.csv'
 training_csv       = 'training.csv' 
 
 default_tools = { 'Syllabus'        => 'sakai.syllabus',
-                  'Calendar'        => 'sakai.summary.calendar', 
+                  'Calendar'        => 'sakai.schedule', 
                   'Announcements'   => 'sakai.announcements', 
-                  'Lesson Builder'  => 'sakai.lessonbuildertool', 
-                  'Assignment2'     => 'sakai.assignment2', 
+                  'Lessons'         => 'sakai.lessonbuildertool', 
+                  'Assignments'     => 'sakai.assignment2', 
                   'Tests & Quizzes' => 'sakai.samigo', 
                   'Forums'          => 'sakai.forums', 
                   'Messages'        => 'sakai.messages', 
                   'Gradebook'       => 'sakai.gradebook.tool', 
-                  'Roster'          => 'sakai.site.roster', 
+                  'Roster'          => 'sakai.site.roster',
+                  'Resources'       => 'sakai.resources', 
                   'Statistics'      => 'sakai.sitestats', 
                   'User Activity'   => 'seminole.useractivity', 
                   'Section Info'    => 'sakai.sections', 
@@ -48,8 +48,8 @@ course_list = []
 if options[:verify]
   begin
     sakai_trained = []
-    CSV.foreach(training_csv, {:headers => true}) do |trained|
-      sakai_trained << trained[0].to_s.downcase
+    CSV.foreach(training_csv, {:headers => true, :header_converters => :symbol}) do |trained|
+      sakai_trained << trained[:username].downcase
     end
   rescue
     abort 'Error opening training.csv'
@@ -57,10 +57,17 @@ if options[:verify]
   abort 'The training.csv appears to be empty.' if sakai_trained.empty? 
 end 
  
-CSV.foreach(create_courses_csv, {:headers => true}) do |row|
-  row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[1].downcase)
-  course_list << row
+CSV.foreach(create_courses_csv, {:headers => true, :header_converters => :symbol}) do |row|
+  row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[:instructor].downcase)
+  course_list << row.to_hash
 end
+
+# Removes two unnecessary columns and any rows with a :status
+course_list.each { |course| course.delete_if { |k| k == :child_class_number }}
+course_list.each { |course| course.delete_if { |k| k =~ /(sql)/ }}
+course_list.delete_if { |course| course[:status] != nil }
+# Removes duplicate rows
+course_list.uniq!
 
 if course_list.empty?
   abort 'Input csv appears to be empty.'
@@ -83,17 +90,17 @@ soapLSClient = Savon::Client.new(longsight_wsdl)
   soapLSClient.http.auth.ssl.verify_mode = :none
 
 course_list.each do |course|
-  unless course.fields.include?('Untrained')
+  unless course.include?('Untrained')
   response = soapClient.request(:add_new_site) do
 	soap.body = { :sessionid   => session[:login_response][:login_return],
-                  :siteid      => course[0],
-                  :title       => course[1],
+                  :siteid      => course[:parent_site_id],
+                  :title       => course[:title],
                   :description => '',
                   :shortdesc   => '',
                   :iconurl     => '',
                   :infourl     => '',
                   :joinable    => false,
-                  :joinerrole  => 'Student',
+                  :joinerrole  => 'Instructor',
                   :published   => false,
                   :publicview  => false,
                   :skin        => '',
@@ -102,7 +109,7 @@ course_list.each do |course|
 
   response = soapClient.request(:set_site_property) do
 	soap.body = { :sessionid => session[:login_response][:login_return],
-                  :siteid    => course[0],
+                  :siteid    => course[:parent_site_id],
                   :propname  => 'term',
                   :propvalue => term }
   end
@@ -112,14 +119,14 @@ course_list.each do |course|
   default_tools.each_pair do |tool_name, tool_id|
   	req = soapClient.request(:add_new_page_to_site) do
 		soap.body = { :sessionid  => session[:login_response][:login_return],
-                        :siteid     => course[0],
+                        :siteid     => course[:parent_site_id],
                         :pagetitle  => tool_name,
                         :pagelayout => 2 }
 	end
 
   	req = soapClient.request(:add_new_tool_to_page) do
 		soap.body = { :sessionid   => session[:login_response][:login_return],
-                        :siteid      => course[0],
+                        :siteid      => course[:parent_site_id],
                         :pagetitle   => tool_name,
                         :tooltitle   => tool_name,
                         :toolid      => tool_id,
@@ -132,14 +139,14 @@ course_list.each do |course|
 
   req = soapClient.request(:add_new_page_to_site) do
 	  soap.body = { :sessionid  => session[:login_response][:login_return],
-                     :siteid     => course[0],
+                     :siteid     => course[:parent_site_id],
                      :pagetitle  => 'Home',
                      :pagelayout => 1 }
   end
 
   req = soapLSClient.request(:add_config_property_to_page) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
-                     :siteid    => course[0],
+                     :siteid    => course[:parent_site_id],
                      :pagetitle => 'Home',
                      :propname  => 'is_home_page',
                      :propvalue => 'true' }
@@ -147,7 +154,7 @@ course_list.each do |course|
 
   req = soapClient.request(:add_new_tool_to_page) do
 	  soap.body = { :sessionid   => session[:login_response][:login_return],
-                     :siteid      => course[0],
+                     :siteid      => course[:parent_site_id],
                      :pagetitle   => 'Home',
                      :tooltitle   => 'Site Information Display',
                      :toolid      => 'sakai.iframe.site',
@@ -156,7 +163,7 @@ course_list.each do |course|
 
   req = soapClient.request(:add_config_property_to_tool) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
-                     :siteid    => course[0],
+                     :siteid    => course[:parent_site_id],
                      :pagetitle => 'Home',
                      :tooltitle => 'Worksite Information',
                      :propname  => 'special',
@@ -165,7 +172,7 @@ course_list.each do |course|
 
   req = soapClient.request(:add_new_tool_to_page) do
 	  soap.body = { :sessionid   => session[:login_response][:login_return],
-                     :siteid      => course[0],
+                     :siteid      => course[:parent_site_id],
                      :pagetitle   => 'Home',
                      :tooltitle   => 'Recent Announcements',
                      :toolid      => 'sakai.synoptic.announcement',
@@ -176,23 +183,15 @@ course_list.each do |course|
 
   req = soapClient.request(:remove_member_from_site) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
-                     :siteid    => course[0],
+                     :siteid    => course[:parent_site_id],
                      :userid    => soap_user }
   end
 
   req = soapClient.request(:add_member_to_site_with_role) do
       soap.body = { :sessionid => session[:login_response][:login_return],
-                    :siteid    => course[0],
-                    :eid       => course[2],
+                    :siteid    => course[:parent_site_id],
+                    :eid       => course[:instructor],
                     :roleid    => 'Instructor' }
     end
   end
-end
-
-time = Time.now  
-t = time.strftime("%Y-%m-%d %H%M%S")
-  
-CSV.open("Courses created #{t}.csv", 'w') { |csv| csv << ['siteid', 'site title', 'instructor'] }
-CSV.open("Courses created #{t}.csv", 'a') do |csv| 
-  course_list.each { |course| csv << course } 
 end
