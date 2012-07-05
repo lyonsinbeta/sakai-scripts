@@ -1,6 +1,5 @@
-# single.csv MUST include headers in the order of
-# siteid, userid of instructor
-# training.csv (if used) must include a header for userid
+# single.csv MUST include headers for site_id, instructor
+# training.csv (if used) must include a header for instructor
 
 require 'optparse'
 require 'savon'
@@ -33,8 +32,8 @@ course_list = []
 if options[:verify]
   begin
     sakai_trained = []
-    CSV.foreach(training_csv, {:headers => true}) do |trained|
-      sakai_trained << trained[0].to_s.downcase
+    CSV.foreach(training_csv, {:headers => true, :header_converters => :symbol}) do |trained|
+      sakai_trained << trained[:username].downcase
     end
   rescue
     abort 'Error opening training.csv'
@@ -42,8 +41,8 @@ if options[:verify]
   abort 'The training.csv appears to be empty.' if sakai_trained.empty? 
 end 
  
-CSV.foreach(activation_csv, {:headers => true}) do |row|
-  row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[1].downcase)
+CSV.foreach(activation_csv, {:headers => true, :header_converters => :symbol}) do |row|
+  row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[:instructor].downcase)
   course_list << row
 end
 
@@ -52,7 +51,7 @@ if course_list.empty?
 end
 
 login = Savon::Client.new(login_wsdl)
-login.http.auth.ssl.verify_mode = :none
+  login.http.auth.ssl.verify_mode = :none
 
 begin
   session = login.request(:login) do
@@ -71,8 +70,8 @@ course_list.each do |course|
   unless course.fields.include?('Untrained')
     response = soapClient.request(:add_member_to_site_with_role) do
       soap.body = { :sessionid => session[:login_response][:login_return],
-                    :siteid    => course[0],
-                    :eid       => course[1],
+                    :siteid    => course[:site_id],
+                    :eid       => course[:instructor],
                     :roleid    => 'Instructor' }
     end
     
@@ -85,7 +84,7 @@ end
 time = Time.now  
 t = time.strftime("%Y-%m-%d %H%M%S")
   
-CSV.open("Courses activated #{t}.csv", 'w') { |csv| csv << ['siteid', 'instructor id'] }
+CSV.open("Courses activated #{t}.csv", 'w') { |csv| csv << ['site_id', 'instructor'] }
 CSV.open("Courses activated #{t}.csv", 'a') do |csv| 
   course_list.each { |course| csv << course } 
 end
