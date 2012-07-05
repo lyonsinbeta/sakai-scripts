@@ -91,7 +91,7 @@ soapLSClient = Savon::Client.new(longsight_wsdl)
 
 course_list.each do |course|
   unless course.include?('Untrained')
-  response = soapClient.request(:add_new_site) do
+  soapClient.request(:add_new_site) do
 	soap.body = { :sessionid   => session[:login_response][:login_return],
                   :siteid      => course[:parent_site_id],
                   :title       => course[:title],
@@ -107,7 +107,7 @@ course_list.each do |course|
                   :type        => 'course' }
   end
 
-  response = soapClient.request(:set_site_property) do
+  soapClient.request(:set_site_property) do
 	soap.body = { :sessionid => session[:login_response][:login_return],
                   :siteid    => course[:parent_site_id],
                   :propname  => 'term',
@@ -117,14 +117,14 @@ course_list.each do |course|
 # Loop to add default tools
 
   default_tools.each_pair do |tool_name, tool_id|
-  	req = soapClient.request(:add_new_page_to_site) do
+  	soapClient.request(:add_new_page_to_site) do
 		soap.body = { :sessionid  => session[:login_response][:login_return],
                         :siteid     => course[:parent_site_id],
                         :pagetitle  => tool_name,
                         :pagelayout => 2 }
 	end
 
-  	req = soapClient.request(:add_new_tool_to_page) do
+  	soapClient.request(:add_new_tool_to_page) do
 		soap.body = { :sessionid   => session[:login_response][:login_return],
                         :siteid      => course[:parent_site_id],
                         :pagetitle   => tool_name,
@@ -137,14 +137,14 @@ course_list.each do |course|
 # Home begin
 # This whole part is to setup the complicated, multi-tooled 'Home'
 
-  req = soapClient.request(:add_new_page_to_site) do
+  soapClient.request(:add_new_page_to_site) do
 	  soap.body = { :sessionid  => session[:login_response][:login_return],
                      :siteid     => course[:parent_site_id],
                      :pagetitle  => 'Home',
                      :pagelayout => 1 }
   end
 
-  req = soapLSClient.request(:add_config_property_to_page) do
+  soapLSClient.request(:add_config_property_to_page) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
                      :siteid    => course[:parent_site_id],
                      :pagetitle => 'Home',
@@ -152,7 +152,7 @@ course_list.each do |course|
                      :propvalue => 'true' }
   end
 
-  req = soapClient.request(:add_new_tool_to_page) do
+  soapClient.request(:add_new_tool_to_page) do
 	  soap.body = { :sessionid   => session[:login_response][:login_return],
                      :siteid      => course[:parent_site_id],
                      :pagetitle   => 'Home',
@@ -161,7 +161,7 @@ course_list.each do |course|
                      :layouthints => '0,0' }
   end
 
-  req = soapClient.request(:add_config_property_to_tool) do
+  soapClient.request(:add_config_property_to_tool) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
                      :siteid    => course[:parent_site_id],
                      :pagetitle => 'Home',
@@ -170,7 +170,7 @@ course_list.each do |course|
                      :propvalue => 'worksite' }
   end
 
-  req = soapClient.request(:add_new_tool_to_page) do
+  soapClient.request(:add_new_tool_to_page) do
 	  soap.body = { :sessionid   => session[:login_response][:login_return],
                      :siteid      => course[:parent_site_id],
                      :pagetitle   => 'Home',
@@ -179,15 +179,33 @@ course_list.each do |course|
                      :layouthints => '0,1' }
   end
 
+  soapClient.request(:add_new_tool_to_page) do
+	  soap.body = { :sessionid   => session[:login_response][:login_return],
+                     :siteid      => course[:parent_site_id],
+                     :pagetitle   => 'Home',
+                     :tooltitle   => 'Calendar',
+                     :toolid      => 'sakai.summary.calendar',
+                     :layouthints => '0,1' }
+  end
+
+  soapClient.request(:add_new_tool_to_page) do
+	  soap.body = { :sessionid   => session[:login_response][:login_return],
+                     :siteid      => course[:parent_site_id],
+                     :pagetitle   => 'Home',
+                     :tooltitle   => 'Message Center Notifications',
+                     :toolid      => 'sakai.synoptic.messagecenter',
+                     :layouthints => '0,1' }
+  end
+
 # Remove creator of site and add correct instructor
 
-  req = soapClient.request(:remove_member_from_site) do
+  soapClient.request(:remove_member_from_site) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
                      :siteid    => course[:parent_site_id],
                      :userid    => soap_user }
   end
 
-  req = soapClient.request(:add_member_to_site_with_role) do
+  soapClient.request(:add_member_to_site_with_role) do
       soap.body = { :sessionid => session[:login_response][:login_return],
                     :siteid    => course[:parent_site_id],
                     :eid       => course[:instructor],
