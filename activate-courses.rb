@@ -1,5 +1,5 @@
-# single.csv MUST include headers for site_id, instructor
-# training.csv (if used) must include a header for instructor
+# single.csv MUST include headers: site_id, id, role
+# training.csv (if used) must include a header for username
 
 require 'optparse'
 require 'savon'
@@ -42,7 +42,7 @@ if options[:verify]
 end 
  
 CSV.foreach(activation_csv, {:headers => true, :header_converters => :symbol}) do |row|
-  row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[:instructor].downcase)
+  row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[:id].downcase)
   course_list << row
 end
 
@@ -71,8 +71,8 @@ course_list.each do |course|
     response = soapClient.request(:add_member_to_site_with_role) do
       soap.body = { :sessionid => session[:login_response][:login_return],
                     :siteid    => course[:site_id],
-                    :eid       => course[:instructor],
-                    :roleid    => 'Instructor' }
+                    :eid       => course[:id],
+                    :roleid    => course[:role] }
     end
     
     if response[:add_member_to_site_with_role_response][:add_member_to_site_with_role_return] =~ /null/
