@@ -27,6 +27,7 @@ default_tools = { 'Syllabus'        => 'sakai.syllabus',
                   'Calendar'        => 'sakai.schedule', 
                   'Announcements'   => 'sakai.announcements', 
                   'Lessons'         => 'sakai.lessonbuildertool', 
+                  'Modules'         => 'sakai.melete',
                   'Assignments'     => 'sakai.assignment2', 
                   'Tests & Quizzes' => 'sakai.samigo', 
                   'Forums'          => 'sakai.forums', 
@@ -65,6 +66,7 @@ end
 # Removes two unnecessary columns and any rows with a :status
 course_list.each { |course| course.delete_if { |k| k == :child_class_number }}
 course_list.each { |course| course.delete_if { |k| k =~ /(sql)/ }}
+course_list.uniq! { |course| course[:parent_site_id] }
 course_list.delete_if { |course| course[:status] != nil }
 # Removes duplicate rows
 course_list.uniq!
@@ -91,7 +93,7 @@ soapLSClient = Savon::Client.new(longsight_wsdl)
 
 course_list.each do |course|
   unless course.include?('Untrained')
-  soapClient.request(:add_new_site) do
+   soapClient.request(:add_new_site) do
 	soap.body = { :sessionid   => session[:login_response][:login_return],
                   :siteid      => course[:parent_site_id],
                   :title       => course[:title],
@@ -213,3 +215,4 @@ course_list.each do |course|
     end
   end
 end
+
