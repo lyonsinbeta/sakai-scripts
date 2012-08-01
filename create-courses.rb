@@ -67,10 +67,9 @@ end
 # Removes extraneous columns/keys, duplicates, and status: created
 # This pruning is for handling creation of merge courses
 # The logic is largely ignored where duplicates don't exist
-course_list.each { |course| course.delete_if { |k| k != :parent_site_id && k != :title && k != :instructor && k != :status }}
+course_list.each { |course| course.keep_if { |k| k == :parent_site_id || k == :title || k == :instructor || k == :status }}
 course_list.uniq! { |course| course[:parent_site_id] }
 course_list.delete_if { |course| course[:status] != nil }
-
 
 if course_list.empty?
   abort 'Input csv appears to be empty.'
