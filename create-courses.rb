@@ -1,4 +1,5 @@
 # .csv MUST include headers
+# parent_site_id, title, instructor, status
 
 require 'optparse'
 require 'savon'
@@ -63,13 +64,13 @@ CSV.foreach(create_courses_csv, {:headers => true, :header_converters => :symbol
   course_list << row.to_hash
 end
 
-# Removes two unnecessary columns and any rows with a :status
-course_list.each { |course| course.delete_if { |k| k == :child_class_number }}
-course_list.each { |course| course.delete_if { |k| k =~ /(sql)/ }}
+# Removes extraneous columns/keys, duplicates, and status: created
+# This pruning is for handling creation of merge courses
+# The logic is largely ignored where duplicates don't exist
+course_list.each { |course| course.delete_if { |k| k != :parent_site_id && k != :title && k != :instructor && k != :status }}
 course_list.uniq! { |course| course[:parent_site_id] }
 course_list.delete_if { |course| course[:status] != nil }
-# Removes duplicate rows
-course_list.uniq!
+
 
 if course_list.empty?
   abort 'Input csv appears to be empty.'
