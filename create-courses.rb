@@ -5,6 +5,8 @@ require 'optparse'
 require 'savon'
 require 'csv'
 
+include './config.rb'
+
 options = {}
 OptionParser.new do |opts|
   opts.banner = "\nThanks for supporting open source software."
@@ -17,12 +19,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-host               = ''
-soap_user          = ''
-soap_pwd           = ''
 term               = ''
-create_courses_csv = ARGV[0] || 'create-courses.csv'
-training_csv       = 'training.csv' 
 
 default_tools = { 'Syllabus'        => 'sakai.syllabus',
                   'Calendar'        => 'sakai.schedule', 
@@ -41,16 +38,16 @@ default_tools = { 'Syllabus'        => 'sakai.syllabus',
                   'Section Info'    => 'sakai.sections', 
                   'Site Info'       => 'sakai.siteinfo' }
 
-login_wsdl     = "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
-script_wsdl    = "#{host}/sakai-axis/SakaiScript.jws?wsdl"
-longsight_wsdl = "#{host}/sakai-axis/WSLongsight.jws?wsdl"
+login_wsdl     = "#{HOST}/sakai-axis/SakaiLogin.jws?wsdl"
+script_wsdl    = "#{HOST}/sakai-axis/SakaiScript.jws?wsdl"
+longsight_wsdl = "#{HOST}/sakai-axis/WSLongsight.jws?wsdl"
 
 course_list = []
 
 if options[:verify]
   begin
     sakai_trained = []
-    CSV.foreach(training_csv, {:headers => true, :header_converters => :symbol}) do |trained|
+    CSV.foreach(TRAINING_CSV, {:headers => true, :header_converters => :symbol}) do |trained|
       sakai_trained << trained[:username].downcase
     end
   rescue
@@ -59,7 +56,7 @@ if options[:verify]
   abort 'The training.csv appears to be empty.' if sakai_trained.empty? 
 end 
  
-CSV.foreach(create_courses_csv, {:headers => true, :header_converters => :symbol}) do |row|
+CSV.foreach(CREATE_COURSES_CSV, {:headers => true, :header_converters => :symbol}) do |row|
   row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[:instructor].downcase)
   course_list << row.to_hash
 end
@@ -80,7 +77,7 @@ login = Savon::Client.new(login_wsdl)
 
 begin
   session = login.request(:login) do
-    soap.body = { :id => soap_user, :pw => soap_pwd }
+    soap.body = { :id => SOAP_USER, :pw => SOAP_PWD }
   end
 rescue
   abort 'Login failed.'
@@ -204,7 +201,7 @@ course_list.each do |course|
   soapClient.request(:remove_member_from_site) do
 	  soap.body = { :sessionid => session[:login_response][:login_return],
                      :siteid    => course[:parent_site_id],
-                     :userid    => soap_user }
+                     :userid    => SOAP_USER }
   end
 
   soapClient.request(:add_member_to_site_with_role) do
