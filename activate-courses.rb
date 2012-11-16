@@ -5,6 +5,8 @@ require 'optparse'
 require 'savon'
 require 'csv'
 
+include './config.rb'
+
 options = {}
 OptionParser.new do |opts|
   opts.banner = "\nThanks for supporting open source software."
@@ -16,16 +18,6 @@ OptionParser.new do |opts|
 	exit
   end
 end.parse!
-
-host           = ''
-soap_user      = ''
-soap_pwd       = '' 
-activation_csv = ARGV[0] || 'single.csv'
-training_csv   = 'training.csv'
-
-login_wsdl     = "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
-script_wsdl    = "#{host}/sakai-axis/SakaiScript.jws?wsdl"
-longsight_wsdl = "#{host}/sakai-axis/WSLongsight.jws?wsdl"
 
 course_list = []
 
