@@ -1,12 +1,6 @@
 require 'savon'
 
-host           = ''
-soap_user      = ''
-soap_pwd       = '' 
-
-login_wsdl     = "#{host}/sakai-axis/SakaiLogin.jws?wsdl"
-script_wsdl    = "#{host}/sakai-axis/SakaiScript.jws?wsdl"
-
+include './config.rb'
 
 login = Savon::Client.new(login_wsdl)
   login.http.auth.ssl.verify_mode = :none
@@ -22,9 +16,7 @@ end
 soapClient   = Savon::Client.new(script_wsdl)
   soapClient.http.auth.ssl.verify_mode = :none
 
-i = 1 
- 
-until i == 201 do 
+1.upto(210) do |i| 
   if i.to_s.length == 1
     user_num = "00#{i}"
   elsif i.to_s.length == 2
@@ -42,6 +34,5 @@ until i == 201 do
                   :type      => 'Student',
                   :password  => "user#{user_num}"	}
   end
-  
-  i += 1
 end
+
