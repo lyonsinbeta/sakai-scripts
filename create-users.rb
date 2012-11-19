@@ -1,6 +1,5 @@
 require 'savon'
-
-include './config.rb'
+require './config.rb'
 
 login = Savon::Client.new(login_wsdl)
   login.http.auth.ssl.verify_mode = :none

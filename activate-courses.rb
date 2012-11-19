@@ -4,8 +4,7 @@
 require 'optparse'
 require 'savon'
 require 'csv'
-
-include './config.rb'
+require './config.rb'
 
 options = {}
 OptionParser.new do |opts|

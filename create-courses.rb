@@ -4,8 +4,7 @@
 require 'optparse'
 require 'savon'
 require 'csv'
-
-include './config.rb'
+require './config.rb'
 
 options = {}
 OptionParser.new do |opts|
@@ -19,7 +18,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-term               = ''
+term               = 'SPRING 2013'
 
 default_tools = { 'Syllabus'        => 'sakai.syllabus',
                   'Calendar'        => 'sakai.schedule', 
