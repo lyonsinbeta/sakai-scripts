@@ -4,7 +4,6 @@
 require 'optparse'
 require 'savon'
 require 'csv'
-require './config.rb'
 
 options = {}
 OptionParser.new do |opts|
@@ -17,6 +16,8 @@ OptionParser.new do |opts|
 	exit
   end
 end.parse!
+
+require './config.rb'
 
 course_list = []
 
