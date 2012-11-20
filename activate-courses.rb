@@ -23,7 +23,7 @@ course_list = []
 if options[:verify]
   begin
     sakai_trained = []
-    CSV.foreach(training_csv, {:headers => true, :header_converters => :symbol}) do |trained|
+    CSV.foreach(TRAINING_CSV, {:headers => true, :header_converters => :symbol}) do |trained|
       sakai_trained << trained[:username].downcase
     end
   rescue
@@ -32,7 +32,7 @@ if options[:verify]
   abort 'The training.csv appears to be empty.' if sakai_trained.empty? 
 end 
  
-CSV.foreach(activation_csv, {:headers => true, :header_converters => :symbol}) do |row|
+CSV.foreach(ACTIVATION_CSV, {:headers => true, :header_converters => :symbol}) do |row|
   row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[:id].downcase)
   course_list << row
 end
@@ -41,20 +41,20 @@ if course_list.empty?
   abort 'Input csv appears to be empty.'
 end
 
-login = Savon::Client.new(login_wsdl)
+login = Savon::Client.new(LOGIN_WSDL)
   login.http.auth.ssl.verify_mode = :none
 
 begin
   session = login.request(:login) do
-    soap.body = { :id => soap_user, :pw => soap_pwd }
+    soap.body = { :id => SOAP_USER, :pw => SOAP_PWD }
   end
 rescue
   abort 'Login failed.'
 end
 
-soapClient   = Savon::Client.new(script_wsdl)
+soapClient   = Savon::Client.new(SCRIPT_WSDL)
   soapClient.http.auth.ssl.verify_mode = :none
-soapLSClient = Savon::Client.new(longsight_wsdl) 
+soapLSClient = Savon::Client.new(LONGSIGHT_WSDL) 
   soapLSClient.http.auth.ssl.verify_mode = :none
 
 course_list.each do |course|
