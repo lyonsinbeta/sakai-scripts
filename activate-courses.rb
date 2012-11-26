@@ -1,4 +1,4 @@
-# single.csv MUST include headers: site_id, id, role
+# activate.csv MUST include headers: site_id, id, role
 # training.csv (if used) must include a header for username
 
 require 'optparse'
