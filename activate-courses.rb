@@ -8,8 +8,12 @@ require 'csv'
 options = {}
 OptionParser.new do |opts|
   opts.banner = "\nThanks for supporting open source software."
-  opts.on('-v', '--verify', "Verifies an instructor has completed training before activating") do |v|
+  opts.on('-v', '--verify', "Verifies instructor belongs in course") do |v|
     options[:verify] = v
+    require 'mysql2'
+  end
+  opts.on('-t', '--training', "Adds untrained insstructors as TA.") do |t|
+    options[:training] = t
   end
   opts.on('-h', '--help', 'Displays help') do
     puts opts
@@ -21,7 +25,7 @@ require './config.rb'
 
 course_list = []
 
-if options[:verify]
+if options[:training]
   begin
     sakai_trained = []
     CSV.foreach(TRAINING_CSV, {:headers => true, :header_converters => :symbol}) do |trained|
@@ -30,16 +34,16 @@ if options[:verify]
   rescue
     abort 'Error opening training.csv'
   end
-  abort 'The training.csv appears to be empty.' if sakai_trained.empty? 
+  abort 'training.csv appears to be empty.' if sakai_trained.empty? 
 end 
  
 CSV.foreach(ACTIVATION_CSV, {:headers => true, :header_converters => :symbol}) do |row|
-  row << 'Untrained' if sakai_trained && !sakai_trained.include?(row[:id].downcase)
+  row[:role] = 'Teaching Assistant' if sakai_trained && !sakai_trained.include?(row[:id].downcase)
   course_list << row
 end
 
 if course_list.empty?
-  abort 'Input csv appears to be empty.'
+  abort 'activate.csv appears to be empty.'
 end
 
 login = Savon::Client.new(LOGIN_WSDL)
@@ -59,17 +63,15 @@ soapLSClient = Savon::Client.new(LONGSIGHT_WSDL)
   soapLSClient.http.auth.ssl.verify_mode = :none
 
 course_list.each do |course|
-  unless course.fields.include?('Untrained')
-    response = soapClient.request(:add_member_to_site_with_role) do
-      soap.body = { :sessionid => session[:login_response][:login_return],
-                    :siteid    => course[:site_id],
-                    :eid       => course[:id],
-                    :roleid    => course[:role] }
-    end
+  response = soapClient.request(:add_member_to_site_with_role) do
+    soap.body = { :sessionid => session[:login_response][:login_return],
+                  :siteid    => course[:site_id],
+                  :eid       => course[:id],
+                  :roleid    => course[:role] }
+  end
     
-    if response[:add_member_to_site_with_role_response][:add_member_to_site_with_role_return] =~ /null/
-      course << 'Returned error'
-    end
+  if response[:add_member_to_site_with_role_response][:add_member_to_site_with_role_return] =~ /null/
+    course << 'Returned error'
   end
 end
 
