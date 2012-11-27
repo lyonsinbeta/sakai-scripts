@@ -81,12 +81,13 @@ if options[:verify]
       JOIN SAKAI_REALM ON SAKAI_REALM_RL_GR.REALM_KEY=SAKAI_REALM.REALM_KEY
       JOIN SAKAI_SITE ON SAKAI_REALM.REALM_ID=CONCAT('/site/',SAKAI_SITE.SITE_ID)
       WHERE SAKAI_USER_ID_MAP.EID='#{id}'
-      AND SITE_ID IN(SELECT SITE_ID FROM SAKAI_SITE WHERE SAKAI_SITE.SITE_ID IN (SELECT SITE_ID FROM SAKAI_SITE_PROPERTY WHERE (VALUE='FALL 2011')));").each do |row|
+      AND SITE_ID IN(SELECT SITE_ID FROM SAKAI_SITE WHERE SAKAI_SITE.SITE_ID IN (SELECT SITE_ID FROM SAKAI_SITE_PROPERTY WHERE (#{SQL_TERMS})));").each do |row|
         arr << row["SITE_ID"]
       end
   end
 end
-
+pp verify_list
+=begin
 course_list.each do |course|
   response = soapClient.request(:add_member_to_site_with_role) do
     soap.body = { :sessionid => session[:login_response][:login_return],
@@ -107,4 +108,4 @@ CSV.open("Courses activated #{t}.csv", 'w') { |csv| csv << ['site_id', 'instruct
 CSV.open("Courses activated #{t}.csv", 'a') do |csv| 
   course_list.each { |course| csv << course } 
 end
-
+=end
