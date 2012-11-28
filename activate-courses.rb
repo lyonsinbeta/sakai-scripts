@@ -76,28 +76,43 @@ if options[:verify]
 
   verify_list.each do |id, arr|
     sql_client.query(
-      "SELECT SAKAI_SITE.SITE_ID,SAKAI_SITE.TITLE, SAKAI_REALM_RL_GR.ACTIVE, SAKAI_USER_ID_MAP.EID FROM SAKAI_USER_ID_MAP
+      "SELECT SAKAI_SITE.SITE_ID,SAKAI_SITE.TITLE, SAKAI_REALM_RL_GR.ACTIVE, SAKAI_USER_ID_MAP.EID 
+      FROM SAKAI_USER_ID_MAP
       JOIN SAKAI_REALM_RL_GR ON SAKAI_USER_ID_MAP.USER_ID=SAKAI_REALM_RL_GR.USER_ID
       JOIN SAKAI_REALM ON SAKAI_REALM_RL_GR.REALM_KEY=SAKAI_REALM.REALM_KEY
       JOIN SAKAI_SITE ON SAKAI_REALM.REALM_ID=CONCAT('/site/',SAKAI_SITE.SITE_ID)
       WHERE SAKAI_USER_ID_MAP.EID='#{id}'
-      AND SITE_ID IN(SELECT SITE_ID FROM SAKAI_SITE WHERE SAKAI_SITE.SITE_ID IN (SELECT SITE_ID FROM SAKAI_SITE_PROPERTY WHERE (#{SQL_TERMS})));").each do |row|
+      AND SITE_ID IN(SELECT SITE_ID FROM SAKAI_SITE 
+      WHERE SAKAI_SITE.SITE_ID IN (SELECT SITE_ID 
+      FROM SAKAI_SITE_PROPERTY WHERE (#{SQL_TERMS})));").each do |row|
         arr << row["SITE_ID"]
-      end
+    end
   end
 end
-pp verify_list
-=begin
+
 course_list.each do |course|
-  response = soapClient.request(:add_member_to_site_with_role) do
-    soap.body = { :sessionid => session[:login_response][:login_return],
-                  :siteid    => course[:site_id],
-                  :eid       => course[:id],
-                  :roleid    => course[:role] }
-  end
-    
-  if response[:add_member_to_site_with_role_response][:add_member_to_site_with_role_return] =~ /null/
-    course << 'Returned error'
+  if options[:verify]
+    if verify_list[course[:id]].include?(course[:site_id])
+      response = soapClient.request(:add_member_to_site_with_role) do
+        soap.body = { :sessionid => session[:login_response][:login_return],
+                      :siteid    => course[:site_id],
+                      :eid       => course[:id],
+                      :roleid    => course[:role] }
+      end
+    else
+      course << 'Not listed as instructor in PeopleSoft'
+    end
+  else
+    response = soapClient.request(:add_member_to_site_with_role) do
+      soap.body = { :sessionid => session[:login_response][:login_return],
+                    :siteid    => course[:site_id],
+                    :eid       => course[:id],
+                    :roleid    => course[:role] }
+    end
+
+    if response[:add_member_to_site_with_role_response][:add_member_to_site_with_role_return] =~ /null/
+    course << 'site_id does not exist'
+    end
   end
 end
 
@@ -108,4 +123,4 @@ CSV.open("Courses activated #{t}.csv", 'w') { |csv| csv << ['site_id', 'instruct
 CSV.open("Courses activated #{t}.csv", 'a') do |csv| 
   course_list.each { |course| csv << course } 
 end
-=end
+
