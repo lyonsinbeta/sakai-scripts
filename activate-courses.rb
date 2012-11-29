@@ -4,7 +4,6 @@
 require 'optparse'
 require 'savon'
 require 'csv'
-require 'pp'
 
 options = {}
 OptionParser.new do |opts|
