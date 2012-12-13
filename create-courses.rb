@@ -37,10 +37,6 @@ default_tools = { 'Syllabus'        => 'sakai.syllabus',
                   'Section Info'    => 'sakai.sections', 
                   'Site Info'       => 'sakai.siteinfo' }
 
-login_wsdl     = "#{HOST}/sakai-axis/SakaiLogin.jws?wsdl"
-script_wsdl    = "#{HOST}/sakai-axis/SakaiScript.jws?wsdl"
-longsight_wsdl = "#{HOST}/sakai-axis/WSLongsight.jws?wsdl"
-
 course_list = []
 
 if options[:verify]
@@ -71,7 +67,7 @@ if course_list.empty?
   abort 'Input csv appears to be empty.'
 end
 
-login = Savon::Client.new(login_wsdl)
+login = Savon::Client.new(LOGIN_WSDL)
   login.http.auth.ssl.verify_mode = :none
 
 begin
@@ -82,9 +78,9 @@ rescue
   abort 'Login failed.'
 end
 
-soapClient   = Savon::Client.new(script_wsdl)
+soapClient   = Savon::Client.new(SCRIPT_WSDL)
   soapClient.http.auth.ssl.verify_mode = :none
-soapLSClient = Savon::Client.new(longsight_wsdl) 
+soapLSClient = Savon::Client.new(LONGSIGHT_WSDL) 
   soapLSClient.http.auth.ssl.verify_mode = :none
 
 course_list.each do |course|
